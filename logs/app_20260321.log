@@ -1,0 +1,39 @@
+2026-03-21 16:02:20.378 | INFO     | node_bge_embedding.py:node_bge_embedding:15   - >>> [Stub] 执行节点: node_bge_embedding
+2026-03-21 16:10:44.199 | INFO     | node_bge_embedding.py:node_bge_embedding:15   - >>> [Stub] 执行节点: node_bge_embedding
+2026-03-21 16:10:44.319 | INFO     | test_graph.py       :<module>       :8    - ===== 开始测试 =====
+2026-03-21 16:10:44.328 | INFO     | node_entry.py       :node_entry     :19   - >>> [Stub] 执行节点: node_entry
+2026-03-21 16:10:44.330 | INFO     | test_graph.py       :<module>       :16   - 节点: node_entry
+2026-03-21 16:10:44.331 | INFO     | node_pdf_to_md.py   :node_pdf_to_md :17   - >>> [Stub] 执行节点: node_pdf_to_md
+2026-03-21 16:10:44.333 | INFO     | test_graph.py       :<module>       :16   - 节点: node_pdf_to_md
+2026-03-21 16:10:44.334 | INFO     | node_md_img.py      :node_md_img    :18   - >>> [Stub] 执行节点: node_md_img
+2026-03-21 16:10:44.335 | INFO     | test_graph.py       :<module>       :16   - 节点: node_md_img
+2026-03-21 16:10:44.336 | INFO     | node_document_split.py:node_document_split:16   - >>> [Stub] 执行节点: node_document_split
+2026-03-21 16:10:44.338 | INFO     | test_graph.py       :<module>       :16   - 节点: node_document_split
+2026-03-21 16:10:44.339 | INFO     | node_item_name_recognition.py:node_item_name_recognition:15   - >>> [Stub] 执行节点: node_item_name_recognition
+2026-03-21 16:10:44.340 | INFO     | test_graph.py       :<module>       :16   - 节点: node_item_name_recognition
+2026-03-21 16:10:44.341 | INFO     | node_bge_embedding.py:node_bge_embedding:15   - >>> [Stub] 执行节点: node_bge_embedding
+2026-03-21 16:10:44.343 | INFO     | test_graph.py       :<module>       :16   - 节点: node_bge_embedding
+2026-03-21 16:10:44.344 | INFO     | node_import_milvus.py:node_import_milvus:15   - >>> [Stub] 执行节点: node_import_milvus
+2026-03-21 16:10:44.346 | INFO     | test_graph.py       :<module>       :16   - 节点: node_import_milvus
+2026-03-21 16:10:44.346 | INFO     | test_graph.py       :<module>       :20   - 最终状态: {
+    "task_id": "",
+    "is_md_read_enabled": false,
+    "is_pdf_read_enabled": true,
+    "is_normal_split_enabled": true,
+    "is_silicon_flow_api_enabled": true,
+    "is_advanced_split_enabled": false,
+    "is_vllm_enabled": false,
+    "local_dir": "",
+    "local_file_path": "万用表RS-12的使用.pdf",
+    "file_title": "",
+    "pdf_path": "",
+    "md_path": "",
+    "split_path": "",
+    "embeddings_path": "",
+    "md_content": "",
+    "chunks": [],
+    "item_name": "",
+    "embeddings_content": []
+}
+2026-03-21 16:10:44.347 | INFO     | test_graph.py       :<module>       :22   - 图结构:
+2026-03-21 16:10:44.497 | INFO     | test_graph.py       :<module>       :26   - ===== 测试结束 =====
