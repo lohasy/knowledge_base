@@ -34,8 +34,8 @@ def node_pdf_to_md(state: ImportGraphState) -> ImportGraphState:
 
     zip_url = step_2_upload_and_pool(pdf_path_path, local_dir_path)
 
-    step_3_download(zip_url=zip_url, out_put_dir=local_dir_path, pdf_stem=pdf_path_path.stem)
-
+    md_path = step_3_download(zip_url=zip_url, out_put_dir=local_dir_path, pdf_stem=pdf_path_path.stem)
+    state["md_path"] = md_path
     return state
 
 
