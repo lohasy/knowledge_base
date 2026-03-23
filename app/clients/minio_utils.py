@@ -4,8 +4,7 @@ import json
 from minio import Minio
 # 项目内部配置与日志
 from app.conf.minio_config import minio_config
-from app.core import logger
-
+from app.core.logger import logger
 # 全局MinIO客户端对象，初始化后供全项目调用
 minio_client = None
 

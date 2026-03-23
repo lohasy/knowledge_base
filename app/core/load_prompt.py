@@ -1,6 +1,5 @@
 from app.utils.path_util import PROJECT_ROOT
-from app.core import logger
-
+from app.core.logger import logger
 
 def load_prompt(name: str, **kwargs) -> str:
     """

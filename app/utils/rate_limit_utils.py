@@ -1,8 +1,7 @@
 # app/utils/rate_limit_utils.py
 import time
 from typing import Deque
-from app.core import logger
-
+from app.core.logger import logger
 
 def apply_api_rate_limit(
         request_times: Deque[float],

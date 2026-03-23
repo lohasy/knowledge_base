@@ -5,8 +5,7 @@ from typing import Optional
 
 # 项目内部依赖
 from app.conf.lm_config import lm_config
-from app.core import logger
-
+from app.core.logger import logger
 # 全局缓存：键为(模型名, JSON输出模式)元组，值为ChatOpenAI实例
 # 作用：避免重复初始化客户端，提升性能，统一实例管理
 _llm_client_cache = {}
