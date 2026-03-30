@@ -35,6 +35,18 @@ def node_pdf_to_md(state: ImportGraphState) -> ImportGraphState:
     zip_url = step_2_upload_and_pool(pdf_path_path, local_dir_path)
 
     md_path = step_3_download(zip_url=zip_url, out_put_dir=local_dir_path, pdf_stem=pdf_path_path.stem)
+
+    logger.info(f"【{method_name}】MD文件生成成功，路径：{md_path}")
+
+    # 读取MD文件内容，捕获异常仅警告不终止
+    try:
+        with open(md_path, "r", encoding="utf-8") as f:
+            state["md_content"] = f.read()
+        logger.debug(f"【{method_name}】MD文件内容读取成功，内容长度：{len(state['md_content'])}字符")
+    except Exception as e:
+        logger.error(f"【{method_name}】读取MD文件内容失败：{str(e)}")
+
+    logger.info(f"【{method_name}】节点执行完成，更新后工作流状态键：{list(state.keys())}")
     state["md_path"] = md_path
     return state
 
