@@ -8,7 +8,6 @@ from typing import Tuple, List, Dict
 from langchain_core.messages import HumanMessage
 from minio import Minio
 from minio.deleteobjects import DeleteObject
-from requests.packages import target
 
 from app.clients.minio_utils import get_minio_client
 from app.conf.lm_config import lm_config
@@ -81,20 +80,30 @@ def is_supported_image(filename: str) -> bool:
 
 
 def step_1_get_content(state: ImportGraphState) -> Tuple[str, Path, Path]:
-    md_path = state["md_path"]
-    if not md_path:
-        raise FileNotFoundError("md_path 为空")
-    md_path_path = Path(md_path)
+    """
+      从全局状态中提取并初始化MD处理所需核心数据
+      :param state: 导入流程全局状态对象
+      :return: 三元组(MD文件内容, MD文件路径对象, 图片文件夹路径对象)
+      :raise FileNotFoundError: 当状态中无有效MD文件路径时抛出
+      """
+    md_file_path = state["md_path"]
+    # 校验MD文件路径有效性
+    if not md_file_path:
+        raise FileNotFoundError(f"全局状态中无有效MD文件路径：{state['md_path']}")
+
+    path_obj = Path(md_file_path)
+    # 优先使用状态中已存在的MD内容，无则从文件读取
     if not state["md_content"]:
-        state["md_content"] = md_path_path.read_text(encoding="utf-8")
-        md_content = state["md_content"]
+        with open(path_obj, "r", encoding="utf-8") as f:
+            md_content = f.read()
+        logger.debug(f"从文件读取MD内容完成，文件大小：{len(md_content)} 字符")
     else:
         md_content = state["md_content"]
+        logger.debug(f"从全局状态获取MD内容完成，内容大小：{len(md_content)} 字符")
 
-    logger.debug(f">> [{node_method_name}] md_content: {md_content[:100]}")
-
-    images_dir = md_path_path.parent / "images"
-    return md_content, md_path_path, images_dir
+    # 图片文件夹固定为MD文件同级的images目录
+    images_dir = path_obj.parent / "images"
+    return md_content, path_obj, images_dir
 
 
 def find_image_in_md(md_content: str, image_file: str, context_len: int = 100):
@@ -219,6 +228,7 @@ def upload_to_minio(minio_client, img_path, object_name):
         img_url = f"{base_url}{object_name}"
         logger.info(f"图片上传成功，访问URL：{img_url}")
     except Exception as e:
+
         logger.error(f"图片上传失败：{e}")
         return None
     return img_url
