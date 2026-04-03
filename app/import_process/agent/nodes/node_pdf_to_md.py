@@ -27,11 +27,11 @@ def node_pdf_to_md(state: ImportGraphState) -> ImportGraphState:
 
     logger.debug(f">>> [{method_name}] 执行节点: {method_name}")
     logger.debug(f">>> [{method_name}] state: {state}")
-
+    #步骤1： 校验PDF路径和输出目录
     pdf_path_path, local_dir_path = step_1_validate_path(state)
     logger.debug(f">>> [{method_name}] pdf_path_path: {pdf_path_path}")
     logger.debug(f">>> [{method_name}] local_dir_path: {local_dir_path}")
-
+    #步骤2： 上传PDF到MinerU并轮询解析结果
     zip_url = step_2_upload_and_pool(pdf_path_path, local_dir_path)
 
     md_path = step_3_download(zip_url=zip_url, out_put_dir=local_dir_path, pdf_stem=pdf_path_path.stem)
@@ -52,7 +52,7 @@ def node_pdf_to_md(state: ImportGraphState) -> ImportGraphState:
 
 
 def step_3_download(zip_url: str, out_put_dir: Path, pdf_stem: str):
-    zip_res = requests.get(zip_url, timeout=30)
+    zip_res = requests.get(zip_url, timeout=120)
     if zip_res.status_code != 200:
         raise RuntimeError(f"[{node_method_name}]下载失败: {zip_res.status_code}")
 
@@ -142,7 +142,7 @@ def step_1_validate_path(state: ImportGraphState) -> tuple[Path, Path]:
     if not pdf_path_path.is_file():
         raise FileNotFoundError("pdf文件 非文件是目录")
 
-    if not local_dir_path.is_dir():
+    if not local_dir_path.exists():
         local_dir_path.mkdir(parents=True, exist_ok=True)
     return pdf_path_path, local_dir_path
 

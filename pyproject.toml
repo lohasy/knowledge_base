@@ -26,5 +26,5 @@ dependencies = [
     "python-multipart>=0.0.22",
     "regex>=2026.2.28",
     "tenacity>=9.1.4",
-    "uvicorn>=0.42.0",
+    "uvicorn[standard]>=0.42.0",
 ]

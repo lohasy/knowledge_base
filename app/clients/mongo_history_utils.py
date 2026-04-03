@@ -6,6 +6,8 @@ import logging
 from typing import List, Dict, Any, Optional
 # 导入时间模块：用于生成时间戳，记录对话的创建时间
 from datetime import datetime
+
+from fastapi import HTTPException
 # 导入pymongo核心模块：MongoDB原生Python驱动，实现数据库连接和操作
 # ASCENDING：表示升序排序，用于MongoDB索引和查询排序
 from pymongo import MongoClient, ASCENDING
@@ -13,6 +15,8 @@ from pymongo import MongoClient, ASCENDING
 from bson import ObjectId
 # 导入dotenv模块：用于从.env文件加载环境变量，避免硬编码敏感配置（如MongoDB连接地址）
 from dotenv import load_dotenv
+
+from app.query_process.api.query_service import app
 
 # 加载.env文件中的环境变量，使os.getenv能读取到配置
 load_dotenv()
@@ -218,6 +222,33 @@ def get_recent_messages(session_id: str, limit: int = 10) -> List[Dict[str, Any]
         logging.error(f"Error getting recent messages: {e}")
         # 异常时返回空列表，避免上层处理None报错
         return []
+
+@app.get("/history/{session_id}")
+async def history(session_id: str, limit: int = 50):
+    """
+    查询当前会话历史记录
+    """
+    try:
+        records = get_recent_messages(session_id, limit=limit)
+        items = []
+        for r in records:
+            items.append({
+                "_id": str(r.get("_id")) if r.get("_id") is not None else "",
+                "session_id": r.get("session_id", ""),
+                "role": r.get("role", ""),
+                "text": r.get("text", ""),
+                "rewritten_query": r.get("rewritten_query", ""),
+                "item_names": r.get("item_names", []),
+                "ts": r.get("ts")
+            })
+        return {"session_id": session_id, "items": items}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"history error: {e}")
+
+@app.delete("/history/{session_id}")
+async def clear_chat_history(session_id: str):
+    count =  clear_history(session_id)
+    return {"message": "History cleared", "deleted_count": count}
 
 
 # 主程序入口：仅当直接运行该脚本时执行，用于简单的功能测试
