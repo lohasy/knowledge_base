@@ -19,10 +19,10 @@ def step_3_extract_info(original_query, history):
     client = get_llm_client(json_mode=True)
     history_text = ""
     for msg in history:
-        history_text += f"{msg['role']} : {msg['message']} \n"
+        history_text += f"{msg['role']} : {msg['text']} \n"
     logger.info(f"Step 3: 历史上下文准备完成 (长度: {len(history_text)})")
 
-    prompt = load_prompt("rewritten_query_and_itemnames", history_text=history_text, query=query)
+    prompt = load_prompt("rewritten_query_and_itemnames", history_text=history_text, query=original_query)
     logger.info(f"Step 3: 提示词加载成功")
 
     messages = [
@@ -67,7 +67,7 @@ def step_4_vectorize_and_query(item_names):
         logger.error("No collection name found in env")
         return results
     logger.info("Step 4: 正在生成向量...")
-    embeddings = generate_embeddings(results)
+    embeddings = generate_embeddings(item_names)
     logger.info(f"Step 4: 已生成 {len(item_names)} 个商品名的向量。开始 Milvus 搜索...")
 
     for i in range(len(item_names)):
@@ -117,44 +117,84 @@ def step_4_vectorize_and_query(item_names):
     return results
 
 
-def step_5_align_item_names(query_results):
+def step_5_align_item_names(query_results) -> dict:
+    """
+    5 根据Milvus搜索评分，逐个对齐step3提取的item_names，生成「确认商品名」和「候选商品名」
+    对齐规则（优先级a>b>c>d）：
+            a  如果只有一个匹配结果评分高于0.85 → 直接确认该商品名
+            b  如果多条匹配结果评分超过0.85 → 优先取与原始提取名相同的，无则取分数最高的
+            c  如果无0.85分以上结果 → 取分数≥0.6的最高前5个作为候选
+            d  如果无0.6分及以上结果 → 不返回任何商品名（确认+候选均为空）
+    :param query_results: 列表[字典] - step4的返回结果，每个商品名的搜索匹配数据（格式同step4返回值）
+    :return: 字典 - 商品名对齐结果，包含确认列表和候选列表，格式：
+             {
+                 "confirmed_item_names": ["确认商品名1", "确认商品名2"],  # 去重后的确认商品名，无则空列表
+                 "options": ["候选商品名1", "候选商品名2", ...]          # 去重后的候选商品名，无则空列表
+             }
+    """
+    # 初始化确认商品名列表（符合高置信度规则的商品名）
     confirmed_item_names: List[str] = []
+    # 初始化候选商品名列表（低置信度，需用户确认的商品名）
     options: List[str] = []
 
     logger.info(f"获得待处理的数据源：{query_results}")
+
     for res in query_results:
+        # 提取原始的数据，商品名和匹配结果
         extracted_name = (res.get("extracted_name", "")).strip()
+        # 获取匹配的商品名，无就获取空列表
         matches = res.get("matches", []) or []
+        # 若无匹配结果，直接跳过当前商品名的对齐
         if not matches:
             continue
-        matches.sort(key=lambda x: x.get("score",0), reverse=True)
+        # {
+        #                             "item_name": hit.get("entity", {}).get("item_name"),  # 数据库标准化商品名
+        #                             "score": hit.get("distance"),  # 0-1相似度评分
+        #                         }
+        # 对匹配结果按评分**降序**排序（高分在前，优先取相似度高的）
+        matches.sort(key=lambda x: x.get("score", 0), reverse=True)
+
+        # 筛选高置信度匹配结果：评分>0.85
         high = [m for m in matches if m.get("score", 0) > 0.85]
+        # 筛选中置信度匹配结果：评分≥0.6（仅高置信度为空时生效）
         mid = [m for m in matches if m.get("score", 0) >= 0.6]
+
+        # 规则a: 只有一个高置信度结果（>0.85）→ 直接确认该商品名
         if len(high) == 1:
             confirmed_item_names.append(high[0].get("item_name"))
-            continue
+            continue  # 匹配到规则a，跳过后续规则判断
+
+        # 规则b: 多条高置信度结果（>0.85）
         if len(high) > 1:
+            # 初始化选中结果为None，优先匹配原始提取名
             picked = None
+            # 若原始提取名非空，优先取与原始名相同的匹配结果
             if extracted_name:
                 for m in high:
                     if m.get("item_name") == extracted_name:
                         picked = m
                         break
+            # 如果没有与原始名相同的结果，则取分数最高的第一个结果
             if not picked:
                 picked = high[0]
+
+            # 将选中的结果加入确认商品名列表
             confirmed_item_names.append(picked.get("item_name"))
             continue  # 匹配到规则b，跳过后续规则判断
 
+        # 规则c: 无0.85分以上结果，取≥0.6分的最高前5个作为候选
+        # 注：高置信度列表high为空时才会走到此处（规则a/b均不满足）
         if len(mid) > 0:
             # 取中置信度结果的前5个，加入候选列表
             for m in mid[:5]:
                 options.append(m.get("item_name"))
 
-        return {
-            "confirmed_item_names": list(set(confirmed_item_names)),  # 去重，避免重复确认
-            "options": list(set(options))  # 去重，避免重复候选
-
-        }
+        # 规则d: 无0.6分及以上结果 → 不做任何操作，确认+候选列表均为空
+     # 返回最终对齐结果：确认列表和候选列表均做去重处理（list(set())）
+    return {
+        "confirmed_item_names": list(set(confirmed_item_names)),  # 去重，避免重复确认
+        "options": list(set(options))  # 去重，避免重复候选
+    }
 
 
 def step_6_check_confirmation(state, align_result, session_id, history, rewritten_query):
@@ -307,3 +347,4 @@ if __name__ == "__main__":
 
     except Exception as e:
         print(f"\n[FAIL] 测试运行出错: {e}")
+        logger.exception("测试运行出错")

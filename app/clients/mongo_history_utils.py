@@ -16,7 +16,6 @@ from bson import ObjectId
 # 导入dotenv模块：用于从.env文件加载环境变量，避免硬编码敏感配置（如MongoDB连接地址）
 from dotenv import load_dotenv
 
-from app.query_process.api.query_service import app
 
 # 加载.env文件中的环境变量，使os.getenv能读取到配置
 load_dotenv()
@@ -215,6 +214,10 @@ def get_recent_messages(session_id: str, limit: int = 10) -> List[Dict[str, Any]
         cursor = mongo_tool.chat_message.find(query).sort("ts", ASCENDING).limit(limit)
         # 将游标转为列表，触发实际数据库查询，获取所有符合条件的文档
         messages = list(cursor)
+        # 将ObjectId转换为字符串，避免JSON序列化问题
+        for msg in messages:
+            if "_id" in msg and isinstance(msg["_id"], ObjectId):
+                msg["_id"] = str(msg["_id"])
         # 返回查询结果列表
         return messages
     except Exception as e:
@@ -223,32 +226,6 @@ def get_recent_messages(session_id: str, limit: int = 10) -> List[Dict[str, Any]
         # 异常时返回空列表，避免上层处理None报错
         return []
 
-@app.get("/history/{session_id}")
-async def history(session_id: str, limit: int = 50):
-    """
-    查询当前会话历史记录
-    """
-    try:
-        records = get_recent_messages(session_id, limit=limit)
-        items = []
-        for r in records:
-            items.append({
-                "_id": str(r.get("_id")) if r.get("_id") is not None else "",
-                "session_id": r.get("session_id", ""),
-                "role": r.get("role", ""),
-                "text": r.get("text", ""),
-                "rewritten_query": r.get("rewritten_query", ""),
-                "item_names": r.get("item_names", []),
-                "ts": r.get("ts")
-            })
-        return {"session_id": session_id, "items": items}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"history error: {e}")
-
-@app.delete("/history/{session_id}")
-async def clear_chat_history(session_id: str):
-    count =  clear_history(session_id)
-    return {"message": "History cleared", "deleted_count": count}
 
 
 # 主程序入口：仅当直接运行该脚本时执行，用于简单的功能测试
