@@ -17,6 +17,7 @@ dependencies = [
     "minio>=7.2.20",
     "modelscope>=1.35.1",
     "numpy>=2.4.3",
+    "openai-agents>=0.4.2",
     "pandas>=3.0.1",
     "polling>=0.3.2",
     "pydantic-ai-slim[retries]>=1.60.0",
